@@ -1,13 +1,14 @@
 #img:
 /data
 /aaa.zip
-/experiments/scripts/log
+/experiments/log
 /experiments/scripts/data
-/experiments/scripts/tensorboard
 /experiments/scripts/kernel_meta
+/experiments/scripts/log
+/experiments/scripts/output
+/experiments/scripts/tensorboard
 /experiments/scripts/*.onnx
 /experiments/scripts/core.*
-/experiments/scripts/*.json
 /output
 /src/person_reida
 /src/*.zip
