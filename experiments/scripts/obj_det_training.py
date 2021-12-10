@@ -263,7 +263,7 @@ def main(args):
     lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
         optimizer, milestones=[args.lr_drop], gamma=0.1)
     # modify for hunhe
-    model, optimizer = amp.initialize(model, optimizer, opt_level="O2", loss_scale=128.0)
+    model, optimizer = amp.initialize(model, optimizer, opt_level="O1", loss_scale=128.0)
     
     # lf = lambda x: ((1 + math.cos(x * math.pi / args.epochs)) / 2) * (1 - args.lrf) + args.lrf  # cosine
     # lr_scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
@@ -286,7 +286,12 @@ def main(args):
                 results[target['image_id'].item()] = {'boxes': pred['boxes'].cpu(),
                                                     'scores': pred['scores'].cpu()}
 
-        data_loader.dataset.write_results_files(rj_loader_no_random)
+        # data_loader.dataset.write_results_files(rj_loader_no_random)
+        data_loader.dataset.write_results_files(results, output_dir)
+        evaluation_metrics = data_loader.dataset.print_eval(results)
+
+        return evaluation_metrics
+        
     if args.only_eval:
         evaluate_and_write_result_files(model, data_loader_test)
         # evaluate_and_write_result_files(model, data_loader_test_blur)
