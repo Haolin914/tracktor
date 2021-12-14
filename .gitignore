@@ -13,3 +13,6 @@
 /src/person_reida
 /src/*.zip
 /tensorboard
+/experiments/scripts/cann_profiling
+/experiments/scripts/__pycache__
+/src/obj_det/__pycache__/*.pyc

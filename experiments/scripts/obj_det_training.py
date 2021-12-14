@@ -297,41 +297,55 @@ def main(args):
         # evaluate_and_write_result_files(model, data_loader_test_blur)
         # evaluate_and_write_result_files(model, data_loader_test_cia)
         exit()
-
+    
     best_AP = 0.0
-    for epoch in range(start_epoch, args.num_epochs + 1):
-        # print(f'TRAIN {data_loader.dataset}')
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=1)
 
-        # update the learning rate
-        lr_scheduler.step()
-        tb_writer.add_scalar('TRAIN/LR', lr_scheduler.get_last_lr(), epoch)
-
-        # evaluate on the test dataset
-        if epoch % eval_nth_epoch == 0 or epoch in [1, args.num_epochs]:
-            if args.eval_train:
-                evaluation_metrics = evaluate_and_write_result_files(model, data_loader_no_random)
-                tb_writer.add_scalar('TRAIN/AP', evaluation_metrics['AP'], epoch)
-
-            evaluation_metrics = evaluate_and_write_result_files(model, data_loader_test)
-            # print(evaluation_metrics)
-            # evaluate(model, data_loader_test, device)
-            # # exit()
-            
-            tb_writer.add_scalar('VAL/AP', evaluation_metrics['AP'], epoch)
-
-            if evaluation_metrics['AP'] > best_AP:
-                best_AP = evaluation_metrics['AP']
-
-                print(f'Save best AP ({best_AP:.2f}) model at epoch: {epoch}')
-                torch.save(model.state_dict(), osp.join(output_dir, "best_AP.model"))
-
-        #   evaluate_and_write_result_files(model, data_loader_test_blur)
-        #   evaluate_and_write_result_files(model, data_loader_test_cia)
+    if args.device.startswith('cuda'):
+        torch.cuda.set_device(args.device)
+        prof_kwargs = {'use_cuda': True}
+    elif args.device.startswith('npu'):
+        torch.npu.set_device(args.device)
+    else:
+        prof_kwargs = {'use_npu': True}
+    with torch.autograd.profiler.profile(**prof_kwargs) as prof:
         
-        torch.save(model.state_dict(), osp.join(output_dir, "last.model"))
+        for epoch in range(start_epoch, args.num_epochs + 1):
+            # print(f'TRAIN {data_loader.dataset}')
+            train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=1)
+
+            # update the learning rate
+            lr_scheduler.step()
+            tb_writer.add_scalar('TRAIN/LR', lr_scheduler.get_last_lr(), epoch)
+
+            # evaluate on the test dataset
+            if epoch % eval_nth_epoch == 0 or epoch in [1, args.num_epochs]:
+                if args.eval_train:
+                    evaluation_metrics = evaluate_and_write_result_files(model, data_loader_no_random)
+                    tb_writer.add_scalar('TRAIN/AP', evaluation_metrics['AP'], epoch)
+
+                evaluation_metrics = evaluate_and_write_result_files(model, data_loader_test)
+                # print(evaluation_metrics)
+                # evaluate(model, data_loader_test, device)
+                # # exit()
+                
+                tb_writer.add_scalar('VAL/AP', evaluation_metrics['AP'], epoch)
+
+                if evaluation_metrics['AP'] > best_AP:
+                    best_AP = evaluation_metrics['AP']
+
+                    print(f'Save best AP ({best_AP:.2f}) model at epoch: {epoch}')
+                    torch.save(model.state_dict(), osp.join(output_dir, "best_AP.model"))
+
+            #   evaluate_and_write_result_files(model, data_loader_test_blur)
+            #   evaluate_and_write_result_files(model, data_loader_test_cia)
+            
+            torch.save(model.state_dict(), osp.join(output_dir, "last.model"))
 
 
+    print(prof.key_averages().table())
+    prof.export_chrome_trace("pytorch_prof_%s.prof" % args.device)
+
+    
     # pick one image from the test set
     data_loader = torch.utils.data.DataLoader(
         dataset_no_random, batch_size=1, shuffle=False, num_workers=4,
@@ -375,6 +389,8 @@ if __name__ == '__main__':
     parser.add_argument('--test_vis_threshold', type=float, default=0.25)
     parser.add_argument('--no_coco_pretraining', action='store_true')
     parser.add_argument('--arch', type=str, default='fasterrcnn_resnet50_fpn')
+    parser.add_argument('--device', type=str, default='npu:0',
+                        help='set which type of device used. Support cuda:0(device_id), npu:0(device_id).')
 
     # parser.add_argument('--syncBN', type=bool, default=True)
 
