@@ -301,7 +301,7 @@ def main(args):
     best_AP = 0.0
     for epoch in range(start_epoch, args.num_epochs + 1):
         # print(f'TRAIN {data_loader.dataset}')
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=200)
+        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=1)
 
         # update the learning rate
         lr_scheduler.step()
@@ -320,7 +320,7 @@ def main(args):
             
             tb_writer.add_scalar('VAL/AP', evaluation_metrics['AP'], epoch)
 
-            if evaluation_metrics['AP'] > best_AP and rank == 0:
+            if evaluation_metrics['AP'] > best_AP:
                 best_AP = evaluation_metrics['AP']
 
                 print(f'Save best AP ({best_AP:.2f}) model at epoch: {epoch}')
